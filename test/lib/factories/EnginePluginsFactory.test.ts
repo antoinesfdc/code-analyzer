@@ -1,5 +1,8 @@
+import * as path from 'node:path';
+import {CodeAnalyzer, CodeAnalyzerConfig, EventType, LogEvent, LogLevel} from '@salesforce/code-analyzer-core';
 import {EnginePluginsFactoryImpl} from '../../../src/lib/factories/EnginePluginsFactory.js';
 
+const WORKSPACE_WITH_FLOW = path.resolve(import.meta.dirname, '..', '..', 'fixtures', 'example-workspaces', 'workspace-with-flow');
 
 describe('EnginePluginsFactoryImpl', () => {
 	it('Loads expected engines', () => {
@@ -16,5 +19,46 @@ describe('EnginePluginsFactoryImpl', () => {
 		expect(enginePlugins[6].getAvailableEngineNames()).toEqual(['apexguru']);
 		expect(enginePlugins[7].getAvailableEngineNames()).toEqual(['uibundle']);
 		expect(enginePlugins[8].getAvailableEngineNames()).toEqual(['flowAnalyzer']);
+	});
+
+	describe('flowAnalyzer without a target org', () => {
+		let core: CodeAnalyzer;
+		let errorLogs: LogEvent[];
+
+		beforeEach(async () => {
+			core = new CodeAnalyzer(CodeAnalyzerConfig.withDefaults());
+			errorLogs = [];
+			core.onEvent(EventType.LogEvent, (event: LogEvent) => {
+				if (event.logLevel <= LogLevel.Warn) {
+					errorLogs.push(event);
+				}
+			});
+			// Only load the lightweight regex engine alongside flowAnalyzer to keep this test fast.
+			const plugins = new EnginePluginsFactoryImpl().create().filter(p => {
+				const names = p.getAvailableEngineNames();
+				return names.includes('regex') || names.includes('flowAnalyzer');
+			});
+			for (const plugin of plugins) {
+				await core.addEnginePlugin(plugin);
+			}
+		});
+
+		it('does not break unrelated scans', async () => {
+			const workspace = await core.createWorkspace([WORKSPACE_WITH_FLOW]);
+			const ruleSelection = await core.selectRules(['regex'], {workspace});
+			const results = await core.run(ruleSelection, {workspace});
+
+			expect(core.getEngineNames()).toContain('flowAnalyzer');
+			expect(results.getViolations().filter(v => v.getRule().getEngineName() === 'flowAnalyzer')).toEqual([]);
+			expect(errorLogs).toEqual([]);
+		});
+
+		it('offers no rules instead of an engine error', async () => {
+			const workspace = await core.createWorkspace([WORKSPACE_WITH_FLOW]);
+			const ruleSelection = await core.selectRules(['flowAnalyzer'], {workspace});
+
+			expect(ruleSelection.getCount()).toEqual(0);
+			expect(errorLogs).toEqual([]);
+		});
 	});
 });
