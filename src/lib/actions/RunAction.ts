@@ -57,7 +57,8 @@ export class RunAction {
 		const cliOverrides = (input['no-suppressions'] !== undefined || input['target-org'] !== undefined)
 			? {
 				noSuppressions: input['no-suppressions'],
-				targetOrg: input['target-org']
+				targetOrg: input['target-org'],
+				ruleSelectors: input['rule-selector']
 			}
 			: undefined;
 		const config: CodeAnalyzerConfig = this.dependencies.configFactory.create(

@@ -285,7 +285,7 @@ describe('CodeAnalyzerConfigFactoryImpl', () => {
 		describe('targetOrg override', () => {
 			it('When no config file and targetOrg override is provided, applies it to apexguru engine', () => {
 				const factory = new CodeAnalyzerConfigFactoryImpl();
-				const testedConfig = factory.create(undefined, { targetOrg: 'my-org@example.com' });
+				const testedConfig = factory.create(undefined, { targetOrg: 'my-org@example.com', ruleSelectors: ['flowAnalyzer'] });
 
 				expect(testedConfig.getEngineOverridesFor('apexguru')).toEqual({
 					target_org: 'my-org@example.com'
@@ -299,7 +299,7 @@ describe('CodeAnalyzerConfigFactoryImpl', () => {
 				const factory = new CodeAnalyzerConfigFactoryImpl();
 				const configPath = path.resolve('test', 'fixtures', 'valid-configs', 'config-without-suppressions-field.yml');
 
-				const testedConfig = factory.create(configPath, { targetOrg: 'my-org@example.com' });
+				const testedConfig = factory.create(configPath, { targetOrg: 'my-org@example.com', ruleSelectors: ['flowAnalyzer'] });
 
 				expect(testedConfig.getEngineOverridesFor('apexguru')).toEqual({
 					target_org: 'my-org@example.com'
@@ -320,7 +320,7 @@ describe('CodeAnalyzerConfigFactoryImpl', () => {
 				const factory = new CodeAnalyzerConfigFactoryImpl();
 				const configPath = path.resolve('test', 'fixtures', 'valid-configs', 'config-with-suppressions-disabled.yml');
 
-				const testedConfig = factory.create(configPath, { targetOrg: 'my-org@example.com' });
+				const testedConfig = factory.create(configPath, { targetOrg: 'my-org@example.com', ruleSelectors: ['flowAnalyzer'] });
 
 				// YAML suppressions setting preserved (disabled), targetOrg also applied
 				expect(testedConfig.getSuppressionsEnabled()).toBe(false);
@@ -336,7 +336,8 @@ describe('CodeAnalyzerConfigFactoryImpl', () => {
 				const factory = new CodeAnalyzerConfigFactoryImpl();
 				const testedConfig = factory.create(undefined, {
 					noSuppressions: true,
-					targetOrg: 'my-org@example.com'
+					targetOrg: 'my-org@example.com',
+					ruleSelectors: ['flowAnalyzer']
 				});
 
 				expect(testedConfig.getSuppressionsEnabled()).toBe(false);
@@ -345,6 +346,44 @@ describe('CodeAnalyzerConfigFactoryImpl', () => {
 				});
 				expect(testedConfig.getEngineOverridesFor('flowAnalyzer')).toEqual({
 					target_org: 'my-org@example.com'
+				});
+			});
+
+			describe('Flow Analyzer opt-in', () => {
+				it.each([
+					['no selectors', []],
+					['Recommended', ['Recommended']],
+					['all and a severity', ['all', 'High']],
+					['another engine', ['apexguru']],
+					['apexguru combined with a tag', ['apexguru:Performance']],
+					['a name merely containing flow', ['flow', 'flowanalyzerish']]
+				])('When the selection is %s, then Flow Analyzer does not get the target org', (_desc, ruleSelectors) => {
+					const factory = new CodeAnalyzerConfigFactoryImpl();
+					const testedConfig = factory.create(undefined, { targetOrg: 'my-org@example.com', ruleSelectors });
+
+					expect(testedConfig.getEngineOverridesFor('apexguru')).toEqual({target_org: 'my-org@example.com'});
+					expect(testedConfig.getEngineOverridesFor('flowAnalyzer')).toEqual({});
+				});
+
+				it.each([
+					['the engine name', ['flowAnalyzer']],
+					['the engine name in any case', ['FLOWANALYZER']],
+					['the opt-in tag', ['flow-analyzer']],
+					['a selector combining it with others', ['Recommended,flowAnalyzer']],
+					['an engine-qualified selector', ['(flowAnalyzer:High)']]
+				])('When the selection includes %s, then Flow Analyzer gets the target org', (_desc, ruleSelectors) => {
+					const factory = new CodeAnalyzerConfigFactoryImpl();
+					const testedConfig = factory.create(undefined, { targetOrg: 'my-org@example.com', ruleSelectors });
+
+					expect(testedConfig.getEngineOverridesFor('flowAnalyzer')).toEqual({target_org: 'my-org@example.com'});
+				});
+
+				it('When a config file already configures Flow Analyzer, then its other settings are kept alongside the target org', () => {
+					const factory = new CodeAnalyzerConfigFactoryImpl();
+					const configPath = path.resolve('test', 'fixtures', 'valid-configs', 'config-without-suppressions-field.yml');
+					const testedConfig = factory.create(configPath, { targetOrg: 'my-org@example.com', ruleSelectors: ['flowAnalyzer'] });
+
+					expect(testedConfig.getEngineOverridesFor('flowAnalyzer')).toEqual({target_org: 'my-org@example.com'});
 				});
 			});
 		});

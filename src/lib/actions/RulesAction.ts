@@ -42,7 +42,7 @@ export class RulesAction {
 
 	public async execute(input: RulesInput): Promise<void> {
 		const cliOverrides = input['target-org'] !== undefined
-			? {targetOrg: input['target-org']}
+			? {targetOrg: input['target-org'], ruleSelectors: input['rule-selector']}
 			: undefined;
 		const config: CodeAnalyzerConfig = this.dependencies.configFactory.create(input['config-file'], cliOverrides);
 		const logWriter: LogFileWriter = await LogFileWriter.fromConfig(config);
