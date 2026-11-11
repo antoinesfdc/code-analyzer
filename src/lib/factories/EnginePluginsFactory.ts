@@ -7,7 +7,7 @@ import * as FlowEngineModule from '@salesforce/code-analyzer-flow-engine';
 import * as SfgeEngineModule from '@salesforce/code-analyzer-sfge-engine';
 import * as ApexGuruEngineModule from '@salesforce/code-analyzer-apexguru-engine';
 import * as UIBundleEngineModule from '@salesforce/code-analyzer-uibundle-engine';
-import * as FlowAnalyzerEngineModule from '@salesforce/code-analyzer-flowanalyzer-engine';
+import * as FlowAnalyzerEngineModule from '@salesforce/code-analyzer-flow-analyzer-engine';
 
 export interface EnginePluginsFactory {
 	create(): EnginePlugin[];

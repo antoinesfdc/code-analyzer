@@ -118,7 +118,7 @@ export class CodeAnalyzerConfigFactoryImpl implements CodeAnalyzerConfigFactory 
 		// Flow Analyzer is opt-in. Giving it a target org activates it, and an activated engine contacts the org when
 		// Core gathers rules, so only do this when the user selected Flow Analyzer.
 		if (CodeAnalyzerConfigFactoryImpl.selectsFlowAnalyzer(cliOverrides.ruleSelectors)) {
-			engines.flowAnalyzer = {target_org: cliOverrides.targetOrg};
+			engines['flow-analyzer'] = {target_org: cliOverrides.targetOrg};
 		}
 		return engines;
 	}
@@ -126,7 +126,7 @@ export class CodeAnalyzerConfigFactoryImpl implements CodeAnalyzerConfigFactory 
 	private static selectsFlowAnalyzer(ruleSelectors: string[] = []): boolean {
 		return ruleSelectors
 			.flatMap(selector => selector.toLowerCase().split(/[^a-z0-9_-]+/))
-			.some(token => token === 'flowanalyzer' || token === 'flow-analyzer');
+			.some(token => token === 'flow-analyzer');
 	}
 
 	private createConfigFromCliOverrides(cliOverrides: CliOverrides): CodeAnalyzerConfig {
